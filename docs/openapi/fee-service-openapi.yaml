@@ -1,0 +1,118 @@
+---
+openapi: 3.0.3
+info:
+  title: Fee Service API
+  version: 1.0.0
+tags:
+- name: Fees
+  description: Fee calculation and management
+paths:
+  /api/v1/fees/exchange:
+    get:
+      tags:
+      - Fees
+      summary: Calculate exchange fee
+      description: Calculate fee for currency exchange
+      parameters:
+      - name: amount
+        in: query
+        schema:
+          type: number
+      - name: from
+        in: query
+        schema:
+          $ref: '#/components/schemas/Currency'
+      - name: to
+        in: query
+        schema:
+          $ref: '#/components/schemas/Currency'
+      responses:
+        "200":
+          description: OK
+  /api/v1/fees/rules/exchange:
+    get:
+      tags:
+      - Fees
+      summary: Get all exchange fee rules
+      responses:
+        "200":
+          description: OK
+    post:
+      tags:
+      - Fees
+      summary: Create exchange fee rule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExchangeFeeRequest'
+      responses:
+        "200":
+          description: OK
+  /api/v1/fees/rules/trading:
+    get:
+      tags:
+      - Fees
+      summary: Get all trading fee rules
+      responses:
+        "200":
+          description: OK
+    post:
+      tags:
+      - Fees
+      summary: Create trading fee rule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTradingFeeRequest'
+      responses:
+        "200":
+          description: OK
+  /api/v1/fees/trading/{symbol}:
+    get:
+      tags:
+      - Fees
+      summary: Calculate trading fee
+      description: Calculate fee for trading a security
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: amount
+        in: query
+        schema:
+          type: number
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    CreateExchangeFeeRequest:
+      type: object
+      properties:
+        from:
+          $ref: '#/components/schemas/Currency'
+        to:
+          $ref: '#/components/schemas/Currency'
+        fixedFee:
+          type: number
+        percentageFee:
+          type: number
+    CreateTradingFeeRequest:
+      type: object
+      properties:
+        symbol:
+          type: string
+        fixedFee:
+          type: number
+        percentageFee:
+          type: number
+    Currency:
+      enum:
+      - USD
+      - EUR
+      - GBP
+      type: string

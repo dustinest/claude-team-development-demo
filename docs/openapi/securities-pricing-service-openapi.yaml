@@ -1,0 +1,71 @@
+---
+openapi: 3.0.3
+info:
+  title: Securities Pricing Service API
+  description: Mock service providing securities prices with realistic fluctuations
+  version: 1.0.0
+tags:
+- name: Securities Pricing
+  description: Securities pricing and market data
+paths:
+  /api/v1/pricing/health:
+    get:
+      tags:
+      - Securities Pricing
+      summary: Health check
+      description: Returns service health status
+      responses:
+        "200":
+          description: OK
+  /api/v1/pricing/securities:
+    get:
+      tags:
+      - Securities Pricing
+      summary: Get all securities
+      description: Returns list of all available securities with current prices
+      parameters:
+      - name: type
+        in: query
+        schema:
+          $ref: '#/components/schemas/SecurityType'
+      responses:
+        "200":
+          description: OK
+  /api/v1/pricing/securities/{symbol}:
+    get:
+      tags:
+      - Securities Pricing
+      summary: Get security by symbol
+      description: Returns a single security with current price
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/pricing/securities/{symbol}/price:
+    get:
+      tags:
+      - Securities Pricing
+      summary: Get current price
+      description: Returns current price for a security
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    SecurityType:
+      enum:
+      - STOCK
+      - STOCK_INDEX
+      - BOND_INDEX
+      type: string

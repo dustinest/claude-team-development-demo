@@ -1,0 +1,34 @@
+---
+openapi: 3.0.3
+info:
+  title: User Signup Service API
+  version: 1.0.0
+tags:
+- name: User Signup
+  description: User registration and signup
+paths:
+  /api/v1/signup:
+    post:
+      tags:
+      - User Signup
+      summary: Register new user
+      description: Creates a new user and broadcasts user-created event
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    SignupRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        username:
+          type: string
+        phoneNumber:
+          type: string

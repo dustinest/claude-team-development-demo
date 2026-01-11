@@ -1,0 +1,29 @@
+---
+openapi: 3.0.3
+info:
+  title: portfolio-service API
+  version: 1.0.0-SNAPSHOT
+tags:
+- name: Portfolio
+  description: Portfolio management
+paths:
+  /api/v1/portfolios/{userId}:
+    get:
+      tags:
+      - Portfolio
+      summary: Get user portfolio
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    UUID:
+      format: uuid
+      pattern: "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+      type: string

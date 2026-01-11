@@ -1,0 +1,65 @@
+---
+openapi: 3.0.3
+info:
+  title: User Service API
+  version: 1.0.0
+tags:
+- name: Users
+  description: User management
+paths:
+  /api/v1/users:
+    get:
+      tags:
+      - Users
+      summary: Get all users
+      responses:
+        "200":
+          description: OK
+  /api/v1/users/email/{email}:
+    get:
+      tags:
+      - Users
+      summary: Get user by email
+      parameters:
+      - name: email
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/users/username/{username}:
+    get:
+      tags:
+      - Users
+      summary: Get user by username
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/users/{userId}:
+    get:
+      tags:
+      - Users
+      summary: Get user by ID
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    UUID:
+      format: uuid
+      pattern: "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+      type: string

@@ -1,0 +1,66 @@
+---
+openapi: 3.0.3
+info:
+  title: Currency Exchange Service API
+  version: 1.0.0
+tags:
+- name: Currency Exchange
+  description: Currency exchange rates and conversion
+paths:
+  /api/v1/exchange/convert:
+    post:
+      tags:
+      - Currency Exchange
+      summary: Convert amount between currencies
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvertRequest'
+      responses:
+        "200":
+          description: OK
+  /api/v1/exchange/rates:
+    get:
+      tags:
+      - Currency Exchange
+      summary: Get all exchange rates
+      responses:
+        "200":
+          description: OK
+  /api/v1/exchange/rates/{from}/{to}:
+    get:
+      tags:
+      - Currency Exchange
+      summary: Get exchange rate between two currencies
+      parameters:
+      - name: from
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Currency'
+      - name: to
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Currency'
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    ConvertRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+        from:
+          $ref: '#/components/schemas/Currency'
+        to:
+          $ref: '#/components/schemas/Currency'
+    Currency:
+      enum:
+      - USD
+      - EUR
+      - GBP
+      type: string

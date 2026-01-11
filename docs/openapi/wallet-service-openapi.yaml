@@ -1,0 +1,134 @@
+---
+openapi: 3.0.3
+info:
+  title: Wallet Service API
+  version: 1.0.0
+tags:
+- name: Wallets
+  description: Wallet and balance management
+paths:
+  /api/v1/wallets/{userId}/balances:
+    get:
+      tags:
+      - Wallets
+      summary: Get all balances for user
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "200":
+          description: OK
+  /api/v1/wallets/{userId}/balances/{currency}:
+    get:
+      tags:
+      - Wallets
+      summary: Get balance for specific currency
+      parameters:
+      - name: currency
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/Currency'
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "200":
+          description: OK
+  /api/v1/wallets/{userId}/deposit:
+    post:
+      tags:
+      - Wallets
+      summary: Deposit funds
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositRequest'
+      responses:
+        "200":
+          description: OK
+  /api/v1/wallets/{userId}/exchange:
+    post:
+      tags:
+      - Wallets
+      summary: Exchange currency
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExchangeRequest'
+      responses:
+        "200":
+          description: OK
+  /api/v1/wallets/{userId}/withdraw:
+    post:
+      tags:
+      - Wallets
+      summary: Withdraw funds
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawRequest'
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    Currency:
+      enum:
+      - USD
+      - EUR
+      - GBP
+      type: string
+    DepositRequest:
+      type: object
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          type: number
+    ExchangeRequest:
+      type: object
+      properties:
+        fromCurrency:
+          $ref: '#/components/schemas/Currency'
+        toCurrency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          type: number
+    UUID:
+      format: uuid
+      pattern: "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+      type: string
+    WithdrawRequest:
+      type: object
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          type: number

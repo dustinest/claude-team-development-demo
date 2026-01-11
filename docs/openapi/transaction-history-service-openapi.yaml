@@ -1,0 +1,41 @@
+---
+openapi: 3.0.3
+info:
+  title: transaction-history-service API
+  version: 1.0.0-SNAPSHOT
+tags:
+- name: Transactions
+  description: Transaction history
+paths:
+  /api/v1/transactions/{userId}:
+    get:
+      tags:
+      - Transactions
+      summary: Get transaction history
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - name: type
+        in: query
+        schema:
+          $ref: '#/components/schemas/TransactionType'
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    TransactionType:
+      enum:
+      - DEPOSIT
+      - WITHDRAWAL
+      - BUY
+      - SELL
+      - CURRENCY_EXCHANGE
+      type: string
+    UUID:
+      format: uuid
+      pattern: "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+      type: string

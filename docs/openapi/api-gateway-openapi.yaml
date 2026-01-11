@@ -1,0 +1,251 @@
+---
+openapi: 3.0.3
+info:
+  title: Trading Platform API Gateway
+  version: 1.0.0
+tags:
+- name: Gateway
+paths:
+  /api/v1/portfolios/{userId}:
+    get:
+      tags:
+      - Gateway Resource
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "200":
+          description: OK
+  /api/v1/securities:
+    get:
+      tags:
+      - Gateway Resource
+      parameters:
+      - name: type
+        in: query
+        schema:
+          $ref: '#/components/schemas/SecurityType'
+      responses:
+        "200":
+          description: OK
+  /api/v1/securities/{symbol}:
+    get:
+      tags:
+      - Gateway Resource
+      parameters:
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/signup:
+    post:
+      tags:
+      - Gateway
+      summary: Register new user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        "200":
+          description: OK
+  /api/v1/trades/buy:
+    post:
+      tags:
+      - Gateway Resource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeRequest'
+      responses:
+        "200":
+          description: OK
+  /api/v1/trades/sell:
+    post:
+      tags:
+      - Gateway Resource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeRequest'
+      responses:
+        "200":
+          description: OK
+  /api/v1/transactions/{userId}:
+    get:
+      tags:
+      - Gateway Resource
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      - name: type
+        in: query
+        schema:
+          $ref: '#/components/schemas/TransactionType'
+      responses:
+        "200":
+          description: OK
+  /api/v1/users/{userId}:
+    get:
+      tags:
+      - Gateway Resource
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "200":
+          description: OK
+  /api/v1/wallets/{userId}/balances:
+    get:
+      tags:
+      - Gateway Resource
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      responses:
+        "200":
+          description: OK
+  /api/v1/wallets/{userId}/deposit:
+    post:
+      tags:
+      - Gateway Resource
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WalletRequest'
+      responses:
+        "200":
+          description: OK
+  /api/v1/wallets/{userId}/exchange:
+    post:
+      tags:
+      - Gateway Resource
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExchangeRequest'
+      responses:
+        "200":
+          description: OK
+  /api/v1/wallets/{userId}/withdraw:
+    post:
+      tags:
+      - Gateway Resource
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WalletRequest'
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    Currency:
+      enum:
+      - USD
+      - EUR
+      - GBP
+      type: string
+    ExchangeRequest:
+      type: object
+      properties:
+        fromCurrency:
+          $ref: '#/components/schemas/Currency'
+        toCurrency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          type: number
+    OrderType:
+      enum:
+      - BY_AMOUNT
+      - BY_QUANTITY
+      type: string
+    SecurityType:
+      enum:
+      - STOCK
+      - STOCK_INDEX
+      - BOND_INDEX
+      type: string
+    SignupRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        username:
+          type: string
+        phoneNumber:
+          type: string
+    TradeRequest:
+      type: object
+      properties:
+        userId:
+          $ref: '#/components/schemas/UUID'
+        symbol:
+          type: string
+        currency:
+          $ref: '#/components/schemas/Currency'
+        orderType:
+          $ref: '#/components/schemas/OrderType'
+        amount:
+          type: number
+        quantity:
+          type: number
+    TransactionType:
+      enum:
+      - DEPOSIT
+      - WITHDRAWAL
+      - BUY
+      - SELL
+      - CURRENCY_EXCHANGE
+      type: string
+    UUID:
+      format: uuid
+      pattern: "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+      type: string
+    WalletRequest:
+      type: object
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          type: number
