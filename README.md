@@ -12,6 +12,17 @@
 
 ---
 
+## 🚀 Quick Links
+
+- **[Getting Started](#getting-started)** - Run the system in 5 minutes
+- **[Replicating This Workflow](#replicating-this-workflow)** - Use this approach for your own projects
+- **[Architecture & Technical Decisions](#architecture--technical-decisions)** - Technical design and patterns
+- **[Test Report](./TEST_REPORT.md)** - Detailed Q/A test results and bug fixes
+- **[Complete Documentation](./docs/)** - All workflow documents (setup, discussion, dev guide, Q/A)
+- **[Key Learnings](#key-learnings--insights)** - What worked, what didn't, best practices
+
+---
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)
@@ -24,6 +35,7 @@
 - [Getting Started](#getting-started)
 - [Testing & Validation](#testing--validation)
 - [Replicating This Workflow](#replicating-this-workflow)
+- [Known Limitations](#known-limitations)
 - [Future Enhancements](#future-enhancements)
 
 ---
@@ -643,6 +655,15 @@ See `docs/01_q_a.md` for comprehensive test cases including:
 - Sample test data
 - Edge cases and negative tests
 
+### Complete Test Results
+
+See **[TEST_REPORT.md](./TEST_REPORT.md)** for:
+- ✅ Full test execution log with timestamps
+- ✅ All bugs discovered and fixed during Q/A phase
+- ✅ Service health check results
+- ✅ System operational status
+- ✅ Technical issues resolved (Flyway conflicts, Kafka deserialization)
+
 ---
 
 ## Replicating This Workflow
@@ -738,6 +759,67 @@ your-project/
 ├── PROJECT_COMPLETION.md    # Created at end
 └── README.md               # Final documentation
 ```
+
+---
+
+## Known Limitations
+
+This project is a **demonstration and proof-of-concept**. The following limitations are intentional for the initial scope:
+
+### Security & Authentication
+- ❌ **No authentication or authorization** - User ID is passed directly in API calls
+- ❌ **No API security** - No JWT, OAuth, or session management
+- ❌ **No input validation** - Minimal validation on request parameters
+- ❌ **No rate limiting** - APIs are unprotected from abuse
+- ⚠️ **Not production-ready for security** - Would require significant hardening
+
+### Mock External Services
+- ⚠️ **Securities Pricing Service** - Mock data, not real market prices
+- ⚠️ **Currency Exchange Service** - Mock rates, not live forex data
+- ⚠️ **No real brokerage integration** - Trades are simulated, not executed
+- ℹ️ These services can be replaced with real providers without changing other services
+
+### Data & Persistence
+- ⚠️ **Single database for all services** - All microservices share one PostgreSQL instance (development only)
+  - Production would require separate databases per service
+  - Current setup simplifies local development
+- ℹ️ **No data backup/recovery** - No automated backups configured
+- ℹ️ **No data retention policies** - All data stored indefinitely
+
+### Testing
+- ⚠️ **No automated tests** - Spock test framework configured but tests not implemented
+- ⚠️ **Manual testing only** - See TEST_REPORT.md for manual test results
+- ℹ️ **No load testing** - Performance under high load unknown
+- ℹ️ **No chaos engineering** - Resilience patterns not validated
+
+### User Interface
+- ❌ **No frontend** - Backend APIs only, Swagger UI for testing
+- ℹ️ React frontend planned but deferred (see Future Enhancements)
+
+### Operational Concerns
+- ⚠️ **No monitoring dashboards** - Metrics exposed but not visualized
+- ⚠️ **No distributed tracing** - Correlation IDs present but no Jaeger/Zipkin
+- ⚠️ **No alerting** - No notification system for errors or anomalies
+- ℹ️ **Docker Compose only** - No Kubernetes/production orchestration
+
+### Business Logic Constraints
+- ℹ️ **Market orders only** - No limit orders, stop-loss, or advanced order types
+- ℹ️ **No order history** - Only completed transactions tracked
+- ℹ️ **No pending transactions** - Immediate execution only
+- ℹ️ **Basic fee structure** - Fixed + percentage only, no tiered pricing
+
+### What This Project IS
+✅ **Architectural demonstration** - Microservices patterns, event-driven design
+✅ **Workflow proof-of-concept** - Multi-role autonomous development
+✅ **Learning resource** - Code patterns, Quarkus usage, Kafka integration
+✅ **Functional prototype** - All core features work end-to-end
+
+### What This Project IS NOT
+❌ **Production-ready system** - Requires security, monitoring, testing
+❌ **Financial services platform** - Mock data, no regulatory compliance
+❌ **Complete application** - No UI, no real integrations
+
+**Use Case:** Educational reference, architectural template, workflow demonstration
 
 ---
 
