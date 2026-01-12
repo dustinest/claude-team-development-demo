@@ -222,5 +222,19 @@ services:
       QUARKUS_REST_CLIENT_PORTFOLIO_SERVICE_URL: http://portfolio-service:8080
       QUARKUS_REST_CLIENT_TRANSACTION_SERVICE_URL: http://transaction-history-service:8080
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
 volumes:
   postgres-data:
