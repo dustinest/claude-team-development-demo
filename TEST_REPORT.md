@@ -1,9 +1,18 @@
 # Test Report - Fractional Stock Trading Platform
 
-**Test Date:** 2026-01-11
+**Test Date:** 2026-01-12 (Step 01 Testing - FAILED)
 **Tester:** Q/A Specialist (Claude)
 **Build Version:** 1.0.0-SNAPSHOT
 **Environment:** Docker Compose (Local Development)
+**Iteration:** Step 01 → Step 02 (Bug Fix Loop)
+
+---
+
+## Executive Summary
+
+**STATUS:** ❌ **CRITICAL BUGS FOUND - TESTING FAILED**
+
+Three critical bugs prevent basic system functionality. All tests blocked. System requires Developer attention before Q/A can continue.
 
 ---
 
@@ -11,8 +20,8 @@
 
 ### Build Status
 - ✅ All 10 microservices compiled successfully
-- ✅ Gradle build: 87 tasks, BUILD SUCCESSFUL
-- ⏳ Docker Compose: Starting services (downloading base images...)
+- ✅ Gradle build: 102 tasks, BUILD SUCCESSFUL in 43s
+- ✅ Docker Compose: All 15 containers built and started
 
 ### Services to Test
 1. Securities Pricing Service (Port 8081)
@@ -37,164 +46,207 @@
 ## Test Execution Log
 
 ### System Startup
-- **15:53:00** - Gradle build initiated
-- **15:53:30** - Build completed successfully (1s, mostly up-to-date)
-- **15:53:32** - Docker Compose started
-- **15:53:32** - Downloading base images (OpenJDK 21, PostgreSQL, Kafka, etc.)
-- **Status:** Images downloading, services building...
+- **20:21:42** - Docker Compose started (after resolving port conflicts from previous project)
+- **20:22:51** - Gradle build executed: 102 tasks, BUILD SUCCESSFUL in 43s
+- **20:25:28** - All 15 containers started successfully
+- **20:26:17** - All services verified running (10 microservices + 5 infrastructure)
+- **Status:** ✅ Infrastructure operational
+
+### Pre-Flight Checks
+- ✅ **Build Verification**: All services compile without errors
+- ✅ **Container Health**: All 15 containers running
+- ✅ **API Gateway Health**: http://localhost:8080/q/health returns {"status":"UP"}
+- ✅ **Kafka Topics**: user-events, wallet-events, trading-events created
 
 ---
 
 ## Test Results
 
-### Pre-Flight Checks
-
-#### ✅ Build Verification
-- **Status:** PASS
-- **Details:** All services compile without errors
-- **Artifacts:** 10 service JARs created in build/quarkus-app/
-
-#### ⏳ Service Health Checks
-- **Status:** PENDING (services starting)
-- **Next:** Verify all services report healthy status
-
----
-
-## Test Cases
-
 ### TC-001: User Registration
-- **Status:** PENDING
+- **Status:** ❌ **FAILED**
 - **Priority:** HIGH
-- **Prerequisite:** API Gateway operational
+- **Result:**
+  - API returned 201 with UUID: `5ad78b8d-455f-4804-b30b-a4ffc9a51625`
+  - BUT user NOT persisted to database (0 rows in users table)
+  - **Root Cause:** Kafka event flow broken (see Bug #2 below)
 
 ### TC-002: Wallet Deposit (USD)
-- **Status:** PENDING
+- **Status:** ❌ **BLOCKED**
 - **Priority:** HIGH
-- **Prerequisite:** TC-001 complete
+- **Result:** HTTP 500 Internal Server Error
+- **Root Cause:** Database table `wallet_balances` does not exist (see Bug #1 below)
 
-### TC-003: View Securities List
-- **Status:** PENDING
-- **Priority:** HIGH
-- **Prerequisite:** Securities Pricing Service operational
-
-### TC-004: Buy Fractional Shares (By Amount)
-- **Status:** PENDING
-- **Priority:** CRITICAL
-- **Prerequisite:** TC-001, TC-002, TC-003 complete
-
-### TC-005: Buy Fractional Shares (By Quantity)
-- **Status:** PENDING
-- **Priority:** HIGH
-- **Prerequisite:** TC-004 complete
-
-### TC-006: View Portfolio
-- **Status:** PENDING
-- **Priority:** HIGH
-- **Prerequisite:** TC-004 complete
-
-### TC-007: Sell Fractional Shares
-- **Status:** PENDING
-- **Priority:** CRITICAL
-- **Prerequisite:** TC-004, TC-006 complete
-
-### TC-008: Wallet Withdrawal
-- **Status:** PENDING
-- **Priority:** MEDIUM
-- **Prerequisite:** TC-002 complete
-
-### TC-009: Currency Exchange
-- **Status:** PENDING
-- **Priority:** HIGH
-- **Prerequisite:** TC-002 complete
-
-### TC-010: Transaction History
-- **Status:** PENDING
-- **Priority:** HIGH
-- **Prerequisite:** Multiple operations complete
-
-### TC-011: Multi-Currency Deposit
-- **Status:** PENDING
-- **Priority:** MEDIUM
-
-### TC-012: Insufficient Funds Handling
-- **Status:** PENDING
-- **Priority:** CRITICAL
-- **Test Type:** Negative test
-
-### TC-013: Price Updates
-- **Status:** PENDING
-- **Priority:** MEDIUM
-- **Test Type:** Time-based test
-
-### TC-014: Exchange Rate Updates
-- **Status:** PENDING
-- **Priority:** MEDIUM
-- **Test Type:** Time-based test
-
-### TC-015: Customer-Favorable Rounding
-- **Status:** PENDING
-- **Priority:** CRITICAL
-- **Test Type:** Calculation verification
+### TC-003 through TC-015
+- **Status:** ❌ **BLOCKED**
+- **Reason:** Cannot proceed without working user registration and wallet functionality
 
 ---
 
-## Issues Found
+## Critical Bugs Found
 
-*No issues found yet - testing in progress*
+### 🔴 BUG #1: Flyway Migration Failure (CRITICAL)
+
+**Severity:** CRITICAL - System Non-Functional
+**Impact:** All application tables missing from database
+**Services Affected:** user-service, wallet-service, trading-service, portfolio-service, transaction-history-service, fee-service
+
+**Description:**
+Configuration setting `quarkus.flyway.baseline-on-migrate=true` causes Flyway to baseline to version 1 without executing any migrations on a fresh database.
+
+**Evidence:**
+```bash
+# Expected tables: users, wallet_balances, trades, holdings, transactions
+# Actual tables: Only flyway_schema_history_* tables exist
+
+postgres=# \dt
+                      List of relations
+ Schema |               Name                | Type  |  Owner
+--------+-----------------------------------+-------+---------
+ public | fee_rules                         | table | trading  ← Only this exists
+ public | flyway_schema_history_fee         | table | trading
+ public | flyway_schema_history_portfolio   | table | trading
+ public | flyway_schema_history_trading     | table | trading
+ public | flyway_schema_history_transaction | table | trading
+ public | flyway_schema_history_user        | table | trading
+ public | flyway_schema_history_wallet      | table | trading
+```
+
+**Flyway Logs:**
+```
+INFO  [org.fly.cor.int.sch.JdbcTableSchemaHistory] Schema history table does not exist yet
+INFO  [org.fly.cor.int.com.DbBaseline] Successfully baselined schema with version: 1
+INFO  [org.fly.cor.int.com.DbMigrate] Schema "public" is up to date. No migration necessary.
+```
+
+**Workaround Applied:**
+Manually executed all V1__*.sql migration files to create tables
+
+**Fix Required:**
+- Remove `quarkus.flyway.baseline-on-migrate=true` from all services
+- OR set `quarkus.flyway.baseline-version=0` to allow V1 migrations to run
+
+**Files to Fix:**
+- services/user-service/src/main/resources/application.properties
+- services/wallet-service/src/main/resources/application.properties
+- services/trading-service/src/main/resources/application.properties
+- services/portfolio-service/src/main/resources/application.properties
+- services/transaction-history-service/src/main/resources/application.properties
 
 ---
 
-## Notes
+### 🔴 BUG #2: Kafka Event Flow Broken (CRITICAL)
 
-### Docker Compose First Run
-- Base image downloads take 5-10 minutes on first run
-- Subsequent runs will be much faster (cached images)
-- All 10 services + 4 infrastructure containers = 14 total containers
+**Severity:** CRITICAL - Core Functionality Broken
+**Impact:** User signup events not published, users not persisted
+**Services Affected:** user-signup-service → user-service
 
-### Testing Strategy
-1. Wait for all services to become healthy
-2. Execute test cases in order (TC-001 through TC-015)
-3. Document results, screenshots, and any issues
-4. Verify event flows via Kafka
-5. Verify database consistency
+**Description:**
+Users created via POST /api/v1/signup return success (HTTP 201 with UUID) but are never persisted to the database. The Kafka event from user-signup-service is not reaching user-service.
+
+**Evidence:**
+```bash
+# Test 1: Created user 5ad78b8d-455f-4804-b30b-a4ffc9a51625
+# Result: 0 rows in users table
+
+# Test 2: Created user 0f63a395-777e-4535-9b31-14a76d6650e2
+# Result: 0 rows in users table
+
+# Kafka topic check:
+$ kafka-console-consumer --topic user-events --from-beginning --max-messages 5
+Processed a total of 0 messages  ← NO MESSAGES IN TOPIC
+```
+
+**Logs:**
+```
+# user-signup-service: Claims to publish
+INFO  [com.tra.pla.sig.ser.SignupService] User signup completed:
+  userId=0f63a395-777e-4535-9b31-14a76d6650e2, email=trader2@example.com
+
+# BUT: No Kafka publish logs
+# AND: user-service shows NO consumption logs
+```
+
+**Status:** Not resolved
+**Fix Required:** Developer investigation needed - event may not be publishing or serialization issue
+
+---
+
+### ⚠️ BUG #3: Service Startup Race Condition (MEDIUM)
+
+**Severity:** MEDIUM - Operational Issue
+**Impact:** Services fail Kafka connection on first startup
+
+**Description:**
+Microservices start before Kafka is fully ready, causing LEADER_NOT_AVAILABLE errors.
+
+**Evidence:**
+```
+WARN  [org.apa.kaf.cli.NetworkClient] Error while fetching metadata:
+  {user-events=LEADER_NOT_AVAILABLE}
+```
+
+**Workaround Applied:**
+Manual restart of services after Kafka is healthy: `docker-compose restart user-service wallet-service ...`
+
+**Fix Required:**
+- Add health check dependencies in docker-compose.yml
+- OR implement Kafka connection retry logic in services
 
 ---
 
 ## Overall Status
 
-**Current Phase:** System Operational
-**Progress:** All 14 containers running successfully
-**Status:** READY FOR COMPREHENSIVE TESTING
+**Current Phase:** ❌ **TESTING FAILED - BUG FIX REQUIRED**
+**Progress:** 0% (0/15 test cases passed)
+**Status:** **BLOCKED** - System non-functional
 
-### Services Status
-- ✅ All 10 microservices: RUNNING
+### Test Summary
+- ❌ TC-001: User Registration - **FAILED** (Kafka event not published)
+- ❌ TC-002: Wallet Deposit - **BLOCKED** (Database tables missing)
+- ❌ TC-003 through TC-015: **BLOCKED** (Prerequisites not met)
+
+### Critical Bugs
+1. 🔴 **BUG #1**: Flyway migrations not executing (baseline-on-migrate issue)
+2. 🔴 **BUG #2**: Kafka event flow broken (user signup events not published)
+3. ⚠️ **BUG #3**: Service startup race condition with Kafka
+
+### Impact Assessment
+- **User Registration:** Non-functional
+- **Wallet Operations:** Non-functional
+- **Trading:** Cannot test (blocked)
+- **Portfolio:** Cannot test (blocked)
+- **Transactions:** Cannot test (blocked)
+
+### Infrastructure Status
+- ✅ All 15 containers: RUNNING
 - ✅ PostgreSQL: HEALTHY
 - ✅ Kafka + Zookeeper: HEALTHY
 - ✅ Redis: HEALTHY
-- ✅ API Gateway: UP (http://localhost:8080)
-
-### Quick Tests Executed
-- ✅ TC-001: User Registration - PASSED (UUID: 930b573b-7efe-4c21-b677-3358a6665cea)
-- ✅ TC-003: View Securities - PASSED (20 securities with live price updates)
-- ✅ Service Health Checks - PASSED
-
-### Technical Issues Resolved During Setup
-1. **Flyway Migration Conflict**: Multiple services sharing same schema history table
-   - **Fix**: Configured unique Flyway table per service (flyway_schema_history_{service})
-   - **Fix**: Added baseline-on-migrate=true for non-empty schemas
-
-2. **Kafka Deserialization Error**: ObjectMapperDeserializer missing no-arg constructor
-   - **Fix**: Switched to StringDeserializer with manual Jackson deserialization
-   - **Services Updated**: user-service, portfolio-service, transaction-history-service
-
-### System Ready For
-- Full end-to-end testing (TC-001 through TC-015)
-- Load testing
-- Event flow validation
-- Database consistency checks
+- ❌ **Application layer:** NON-FUNCTIONAL
 
 ---
 
-**Report Last Updated:** 2026-01-11 16:13 UTC
+## Q/A Decision
+
+**❌ TESTING CANNOT CONTINUE**
+
+The system has **2 critical bugs** that prevent basic functionality. I am looping back to the **Developer** role to fix these issues before testing can proceed.
+
+### Next Steps (Step 02 - Bug Fix Iteration)
+
+**Developer Tasks:**
+1. Fix BUG #1: Remove or correct Flyway baseline configuration
+2. Fix BUG #2: Investigate and fix Kafka event publishing in user-signup-service
+3. Fix BUG #3: Add proper startup dependencies for Kafka
+
+**After Fixes:**
+- Q/A will re-test from TC-001 through TC-015
+- Full regression testing required
+
+---
+
+**Report Last Updated:** 2026-01-12 20:35 UTC
 **Q/A Specialist:** Claude (Sonnet 4.5)
-**Build Status:** OPERATIONAL ✅
+**Build Status:** ❌ **FAILED - REQUIRES BUG FIXES**
+
+**Iteration:** Step 01 Testing → Step 02 Bug Fixes Required
