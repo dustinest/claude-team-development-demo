@@ -1,0 +1,41 @@
+plugins {
+    id 'groovy'
+    id 'java'
+}
+
+dependencies {
+    // Spock Framework (using Groovy 4.0 for consistency with REST-assured)
+    testImplementation 'org.spockframework:spock-core:2.4-M1-groovy-4.0'
+    testImplementation 'org.apache.groovy:groovy-sql:4.0.15'
+
+    // REST-assured for API testing
+    testImplementation 'io.rest-assured:rest-assured:5.3.2'
+    testImplementation 'io.rest-assured:json-path:5.3.2'
+
+    // TestContainers
+    testImplementation 'org.testcontainers:testcontainers:1.19.3'
+    testImplementation 'org.testcontainers:postgresql:1.19.3'
+    testImplementation 'org.testcontainers:kafka:1.19.3'
+    testImplementation 'org.testcontainers:spock:1.19.3'
+
+    // PostgreSQL Driver
+    testImplementation 'org.postgresql:postgresql:42.7.1'
+
+    // Kafka Client
+    testImplementation 'org.apache.kafka:kafka-clients:3.6.1'
+
+    // Awaitility for async operations
+    testImplementation 'org.awaitility:awaitility:4.2.0'
+
+    // JSON processing
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.16.0'
+}
+
+test {
+    useJUnitPlatform()
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}

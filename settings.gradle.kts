@@ -15,5 +15,8 @@ include(
     "services:fee-service",
     "services:securities-pricing-service",
     "services:currency-exchange-service",
-    "services:user-signup-service"
+    "services:user-signup-service",
+
+    // Integration Tests
+    "services:integration-tests"
 )
