@@ -1,12 +1,47 @@
-# Implementation Status - Step 05 Partial Completion
+# Implementation Status - Step 06 Architecture Refactoring
 
-**Last Updated:** 2026-01-13 18:25 UTC
-**Current Phase:** Step 05 - Developer Bug Fixes PARTIAL ⚠️
-**Next Phase:** Step 06 - Escalation to Senior Engineer OR Q/A Re-validation
+**Last Updated:** 2026-01-13 19:00 UTC
+**Current Phase:** Step 06 - Senior Engineer Architectural Refactoring 🔵
+**Next Phase:** Developer Implementation → Q/A Validation
 
 ---
 
-## Project Status: Step 03 Functional ✅ | Step 04 REJECTED ❌ | Step 05 PARTIAL ⚠️
+## Project Status: Step 03 Functional ✅ | Step 04 REJECTED ❌ | Step 05 PARTIAL ⚠️ | Step 06 INITIATED 🔵
+
+### Step 06: Architecture Refactoring - SENIOR ENGINEER DECISION 🔵
+- **Status:** Architectural decision made - Merge user-signup-service into user-service
+- **Priority:** HIGH - Unblocks Step 05 validation issues
+- **Decision:** Remove user-signup-service entirely, move all user creation logic to user-service
+- **Rationale:**
+  - User signup IS user creation - artificial service separation violates domain boundaries
+  - Creates validation problems (Step 05 blocker)
+  - Operator insight: "One user, many credentials" requires unified user service
+  - Event should be notification (after persistence), not command (before persistence)
+- **Expected Outcome:**
+  - POST /api/v1/users endpoint in user-service
+  - Email format and duplicate validation working correctly
+  - 40-43/45 integration tests passing (up from 16/45)
+  - Simpler, cleaner architecture
+- **Documentation:**
+  - `docs/06_se.md` - Senior Engineer architectural analysis and decision
+  - `docs/06_dev.md` - Developer implementation instructions (detailed)
+- **Next:** Developer implementation
+
+**Key Changes:**
+1. ✅ Add POST /users endpoint to user-service
+2. ✅ Add Kafka event publisher to user-service
+3. ✅ Add validation logic (format + duplicates) to user-service
+4. ✅ Update API Gateway to route signup to user-service
+5. ✅ Remove user-signup-service from docker-compose and Gradle
+6. ✅ Test: 40+ integration tests should pass
+
+**Architectural Benefits:**
+- Single service owns complete user domain (create, read, update, delete)
+- Validation happens in same transaction as database insert
+- No cross-service data access required
+- Events are notifications (published after persistence)
+- Easier to add OAuth, phone signup, multiple credentials per user
+- Reduces complexity: 15 containers → 14 containers
 
 ### Step 05: Developer Bug Fixes - PARTIAL COMPLETION ⚠️
 - **Status:** 4 out of 5 bugs fixed successfully
