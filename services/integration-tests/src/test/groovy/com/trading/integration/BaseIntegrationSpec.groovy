@@ -85,7 +85,7 @@ abstract class BaseIntegrationSpec extends Specification {
             .response()
 
         // Wait for Kafka event processing
-        Thread.sleep(2000)
+        Thread.sleep(5000)
 
         return [
             userId: response.path("userId") as String,
