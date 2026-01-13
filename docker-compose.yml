@@ -90,19 +90,6 @@ services:
       QUARKUS_HTTP_PORT: 8080
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres:5432/trading
 
-  user-signup-service:
-    build:
-      context: ./services/user-signup-service
-      dockerfile: src/main/docker/Dockerfile.jvm
-    ports:
-      - "8084:8080"
-    depends_on:
-      kafka:
-        condition: service_healthy
-    environment:
-      QUARKUS_HTTP_PORT: 8080
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-
   user-service:
     build:
       context: ./services/user-service
@@ -205,7 +192,6 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - user-signup-service
       - user-service
       - wallet-service
       - securities-pricing-service
@@ -214,7 +200,6 @@ services:
       - transaction-history-service
     environment:
       QUARKUS_HTTP_PORT: 8080
-      QUARKUS_REST_CLIENT_USER_SIGNUP_SERVICE_URL: http://user-signup-service:8080
       QUARKUS_REST_CLIENT_USER_SERVICE_URL: http://user-service:8080
       QUARKUS_REST_CLIENT_WALLET_SERVICE_URL: http://wallet-service:8080
       QUARKUS_REST_CLIENT_PRICING_SERVICE_URL: http://securities-pricing-service:8080

@@ -31,7 +31,12 @@ public class GatewayResource {
     @Tag(name = "Gateway")
     @Operation(summary = "Register new user")
     public Response signup(SignupRequest request) {
-        return userSignupClient.signup(request);
+        try {
+            return userClient.createUser(request);
+        } catch (jakarta.ws.rs.WebApplicationException e) {
+            // Forward the response from the service (including error responses)
+            return e.getResponse();
+        }
     }
 
     @GET
