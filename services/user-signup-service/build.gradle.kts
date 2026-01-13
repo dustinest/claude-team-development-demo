@@ -9,6 +9,8 @@ dependencies {
     implementation("io.quarkus:quarkus-smallrye-health")
     implementation("io.quarkus:quarkus-smallrye-openapi")
     implementation("io.quarkus:quarkus-smallrye-reactive-messaging-kafka")
+    implementation("io.quarkus:quarkus-hibernate-orm-panache")
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation("io.quarkus:quarkus-arc")
     implementation(project(":shared:common-domain"))
     implementation(project(":shared:common-events"))

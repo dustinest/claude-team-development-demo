@@ -9,7 +9,7 @@ import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import java.util.UUID;
 
-@Path("/api/v1/portfolios")
+@Path("/api/v1/portfolio")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Tag(name = "Portfolio", description = "Portfolio management")
@@ -21,6 +21,7 @@ public class PortfolioResource {
     @Path("/{userId}")
     @Operation(summary = "Get user portfolio")
     public Response getPortfolio(@PathParam("userId") UUID userId) {
-        return Response.ok(portfolioService.getPortfolio(userId)).build();
+        var holdings = portfolioService.getPortfolio(userId);
+        return Response.ok(java.util.Map.of("holdings", holdings)).build();
     }
 }
