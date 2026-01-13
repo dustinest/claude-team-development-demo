@@ -3,6 +3,7 @@ package com.trading.platform.user.messaging;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trading.platform.events.UserCreatedEvent;
 import com.trading.platform.user.service.UserService;
+import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -19,6 +20,7 @@ public class UserEventConsumer {
     @Inject
     ObjectMapper objectMapper;
 
+    @Blocking
     @Incoming("user-events-in")
     public void consumeUserCreatedEvent(String message) {
         try {

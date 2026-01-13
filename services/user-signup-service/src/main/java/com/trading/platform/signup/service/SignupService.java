@@ -15,8 +15,9 @@ import java.util.UUID;
 public class SignupService {
     private static final Logger LOG = LoggerFactory.getLogger(SignupService.class);
 
-    @org.eclipse.microprofile.reactive.messaging.Channel("user-events-out")
-    io.smallrye.reactive.messaging.MutinyEmitter<UserCreatedEvent> userEventsEmitter;
+    @Inject
+    @Channel("user-events-out")
+    Emitter<UserCreatedEvent> userEventsEmitter;
 
     public UUID signup(SignupRequest request) {
         // Validate request
@@ -41,7 +42,14 @@ public class SignupService {
             request.getPhoneNumber()
         );
 
-        userEventsEmitter.send(event);
+        LOG.info("About to publish event for userId={}", userId);
+        if (userEventsEmitter == null) {
+            LOG.error("ERROR: userEventsEmitter is NULL! Event will NOT be published!");
+        } else {
+            LOG.info("Emitter is injected, sending event...");
+            userEventsEmitter.send(event);
+            LOG.info("Event sent successfully via emitter");
+        }
         LOG.info("User signup completed: userId={}, email={}, username={}",
             userId, request.getEmail(), request.getUsername());
 
