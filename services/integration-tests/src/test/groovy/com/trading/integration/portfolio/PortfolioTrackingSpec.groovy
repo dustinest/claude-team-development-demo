@@ -40,11 +40,11 @@ class PortfolioTrackingSpec extends BaseIntegrationSpec {
 
         then: "portfolio calculates weighted average price"
         def holdings = queryDatabase(
-            "SELECT avg_purchase_price, quantity FROM portfolio_service.holdings WHERE user_id = '${user.userId}' AND symbol = 'AAPL'"
+            "SELECT average_price, quantity FROM portfolio_service.holdings WHERE user_id = '${user.userId}' AND symbol = 'AAPL'"
         )
         holdings.size() == 1
-        holdings[0].avg_purchase_price != null
-        (holdings[0].avg_purchase_price as BigDecimal) > 0
+        holdings[0].average_price != null
+        (holdings[0].average_price as BigDecimal) > 0
     }
 
     def "portfolio updates correctly after sell"() {
@@ -61,14 +61,7 @@ class PortfolioTrackingSpec extends BaseIntegrationSpec {
         def initialQuantity = initialHoldings[0].quantity as BigDecimal
 
         when: "selling some shares"
-        def response = given()
-            .contentType("application/json")
-            .body([symbol: "TSLA", quantity: 1.0])
-            .post("${TRADING_SERVICE_URL}/api/v1/trades/${user.userId}/sell/by_quantity")
-            .then()
-            .statusCode(200)
-            .extract()
-            .response()
+        sellShares(user.userId, "TSLA", 1.0, "BY_QUANTITY")
         Thread.sleep(1000)
 
         then: "portfolio quantity is reduced"

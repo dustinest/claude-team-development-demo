@@ -60,12 +60,7 @@ class CompleteUserJourneySpec extends BaseIntegrationSpec {
         remainingBalance > 0
 
         when: "user sells some shares"
-        given()
-            .contentType("application/json")
-            .body([symbol: "AAPL", quantity: 1.0])
-            .post("${TRADING_SERVICE_URL}/api/v1/trades/${userId}/sell/by_quantity")
-            .then()
-            .statusCode(200)
+        sellShares(userId, "AAPL", 1.0, "BY_QUANTITY")
         Thread.sleep(1000)
 
         then: "wallet balance increases from sale proceeds"
