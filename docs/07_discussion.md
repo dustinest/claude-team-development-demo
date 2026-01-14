@@ -1,317 +1,644 @@
-# Step 07 Discussion - Product Owner Decision
+# Step 07 Discussion - Senior Engineer Technical Analysis
 
 **Date:** 2026-01-14
-**Role:** Product Owner
-**Task:** Assess project readiness and decide on Step 07
+**Updated By:** Senior Engineer (building on Product Owner decision)
+**Status:** Root Cause Identified - Implementation Plan Ready
 
 ---
 
-## Product Owner Assessment
+## Executive Summary - Senior Engineer Analysis
 
-### Context Review
+**Root Cause Identified:** The Content-Type header issue is a **symptom, not the root cause**. The actual problem is a **fundamental API contract mismatch** between three components:
 
-I reviewed the following documentation to assess current project status:
-1. `docs/01_setup.md` - Multi-role workflow framework
-2. `IMPLEMENTATION_STATUS.md` - Current project state
-3. `docs/06_discussion.md` - Step 06 developer implementation and Q/A validation
-4. `TEST_REPORT.md` - Complete testing history and results
+1. **Trading Service** (actual implementation)
+2. **API Gateway TradingClient** (what gateway expects)
+3. **Integration Tests** (what tests call)
 
-### Current Status (Step 06 Complete)
+All trading tests fail because they're calling **non-existent endpoints**, receiving error responses without Content-Type headers, which causes REST-Assured parser failures.
 
-**What's Working:** ✅
-- User service consolidation complete (user-signup-service merged into user-service)
-- System running stably with 14 containers
-- User creation with full validation (email format, duplicates)
-- Wallet operations (deposit, withdraw, currency exchange)
-- Currency exchange service
-- Schema isolation architecture (Step 03)
-- Kafka event flows
-- API Gateway routing
+**Impact:** 21+ integration tests failing, 0% trading feature validation
+
+**Solution:** Refactor Trading Service endpoints to match expected API contract (2 simple endpoints instead of 4 complex ones)
+
+**Complexity:** Medium - Requires endpoint path changes and request DTO consolidation
+
+**Timeline:** 1-2 hours implementation + 30 min test updates
+
+---
+
+## Part 1: Product Owner Decision (Previously Documented)
+
+### Business Assessment
+
+**Project Type:** Fractional Stock Trading Platform
+**Business Risk:** 🔴 HIGH - Core trading feature unvalidated
+**Decision:** Proceed with Step 07
+**Rationale:** Cannot ship trading platform without validated trading operations
+
+**Current Status:**
+- ✅ User management: 100% test coverage
+- ✅ Wallet operations: 100% test coverage
+- ✅ Currency exchange: 100% test coverage
+- ❌ Trading operations: 0% test coverage (21+ failures)
+- ❌ Portfolio tracking: Dependent on trading (failing)
 
 **Integration Test Results:**
-- **Passing:** 17/45 tests (37.8%)
-- **Failing:** 28/45 tests (62.2%)
-- **Target:** 40-43/45 tests (89-96%)
-- **Gap:** 23-26 tests needed
+- Passing: 17/45 (37.8%)
+- Target: 40-43/45 (89-96%)
+- Gap: 23-26 tests
 
-**Test Breakdown:**
-- ✅ User registration validation: 2/2 (100%)
-- ✅ Wallet operations: 7/7 (100%)
-- ✅ Currency exchange: 3/3 (100%)
-- ✅ Schema isolation: 4/4 (100%)
-- ❌ Trading operations: 21+ failures
-- ❌ Portfolio tracking: Multiple failures (dependent on trading)
+### Product Owner Directive
+
+Senior Engineer tasked with:
+1. Root cause analysis of Content-Type header issue
+2. Architectural recommendations for fix
+3. Create developer implementation guide (`docs/07_dev.md`)
 
 ---
 
-## Business Risk Assessment
+## Part 2: Senior Engineer Root Cause Analysis
 
-### Project Type
-**Fractional Stock Trading Platform** - A financial services application where trading is the PRIMARY business feature, not a secondary capability.
+### The API Contract Mismatch Discovery
 
-### Critical Findings
+Through systematic analysis of service resources, gateway clients, and integration tests, I discovered a three-way API contract mismatch:
 
-**Business Risk Level:** 🔴 **HIGH**
+#### 1. What the API Gateway Expects
+**File:** `services/api-gateway/.../client/TradingClient.java:9-10`
 
-**Reasoning:**
-1. **Core Feature Unvalidated:** Trading is the main value proposition of the platform
-2. **21+ Test Failures:** All trading operation tests are failing
-3. **Root Cause Identified:** Trading service missing Content-Type headers
-4. **Cascading Impact:** Portfolio tracking depends on trading (also failing)
+```java
+@Path("/api/v1/trades")
+public interface TradingClient {
+    @POST @Path("/buy") Response buy(Object request);   // Expects: /api/v1/trades/buy
+    @POST @Path("/sell") Response sell(Object request);  // Expects: /api/v1/trades/sell
+}
+```
 
-### What This Means
+**Expected endpoints:**
+- `POST /api/v1/trades/buy`
+- `POST /api/v1/trades/sell`
 
-**Cannot ship a trading platform without validated trading operations.**
+#### 2. What the Trading Service Actually Provides
+**File:** `services/trading-service/.../resource/TradingResource.java:24-66`
 
-This is equivalent to:
-- Shipping an e-commerce platform without validated checkout
-- Shipping a messaging app without validated message delivery
-- Shipping a payment processor without validated transactions
+```java
+@Path("/api/v1/trades")
+@Produces(MediaType.APPLICATION_JSON)  // ← Annotation IS present!
+@Consumes(MediaType.APPLICATION_JSON)
+public class TradingResource {
+    @POST @Path("/{userId}/buy/amount")      // /api/v1/trades/{userId}/buy/amount
+    @POST @Path("/{userId}/buy/quantity")    // /api/v1/trades/{userId}/buy/quantity
+    @POST @Path("/{userId}/sell/amount")     // /api/v1/trades/{userId}/sell/amount
+    @POST @Path("/{userId}/sell/quantity")   // /api/v1/trades/{userId}/sell/quantity
+}
+```
 
-The 37.8% test coverage does not adequately cover our core business functionality.
+**Actual endpoints:**
+- `POST /api/v1/trades/{userId}/buy/amount`
+- `POST /api/v1/trades/{userId}/buy/quantity`
+- `POST /api/v1/trades/{userId}/sell/amount`
+- `POST /api/v1/trades/{userId}/sell/quantity`
 
----
+#### 3. What the Integration Tests Call
+**File:** `services/integration-tests/.../BaseIntegrationSpec.groovy:132`
 
-## Decision: PROJECT NOT READY
+```groovy
+def buyShares(String userId, String symbol, BigDecimal amount, String orderType = "BY_AMOUNT") {
+    .post("${TRADING_SERVICE_URL}/api/v1/trades/${userId}/buy/${orderType.toLowerCase()}")
+    // When orderType="BY_AMOUNT", attempts: /api/v1/trades/{userId}/buy/by_amount
+}
+```
 
-### Decision Rationale
+**Test calls:**
+- `POST /api/v1/trades/{userId}/buy/by_amount`
+- `POST /api/v1/trades/{userId}/sell/by_amount`
 
-**✅ Strengths (What's Complete):**
-1. User management infrastructure is solid
-2. Wallet operations fully validated
-3. Supporting services (currency exchange, fees) working
-4. Architectural foundation is sound (schema isolation, event-driven)
+### The Cascading Failure Sequence
 
-**❌ Gaps (What's Missing):**
-1. Core trading feature not validated (21+ tests failing)
-2. Test coverage significantly below target (37.8% vs 89%+)
-3. Portfolio tracking unverified
-4. Business risk unacceptable for production
+```
+Test calls: POST /api/v1/trades/USER-123/buy/by_amount
+    ↓
+Trading Service: 404 Not Found (endpoint doesn't exist!)
+    ↓
+JAX-RS returns error response WITHOUT Content-Type header
+    ↓
+REST-Assured attempts: response.body().as(Map)
+    ↓
+REST-Assured error: "Cannot parse content because no content-type was present"
+    ↓
+Test FAILS with Content-Type error (symptom, not root cause)
+```
 
-**Q/A Provided Clear Path Forward:**
-- Root cause: Trading service Content-Type headers missing
-- Expected fix complexity: Low (configuration/annotation issue)
-- Expected impact: Unlock 21+ additional tests
-- Confidence: High (similar pattern working in other services)
+### Key Finding: @Produces Annotation IS Correct
 
-### Cost-Benefit Analysis
+**Critical Discovery:** The Trading Service ALREADY HAS the `@Produces(MediaType.APPLICATION_JSON)` annotation at class level (line 16 of TradingResource.java). This annotation is present and correct.
 
-**Cost of Step 07:**
-- Senior Engineer: 30-60 minutes (analysis + guidance)
-- Developer: 1-2 hours (implementation + verification)
-- Q/A: 30-45 minutes (regression testing)
-- **Total:** 2-3 hours
+**Why Content-Type headers are still missing:**
+1. Tests call endpoints that don't exist (path mismatch)
+2. JAX-RS returns 404/405 error responses
+3. Default error handlers don't always set Content-Type headers
+4. REST-Assured cannot parse responses without Content-Type
+5. Tests fail with misleading "missing content-type" error
 
-**Benefit of Step 07:**
-- Validate core business feature (trading)
-- Reach 89%+ test coverage target
-- Reduce business risk to acceptable levels
-- Production readiness for core functionality
-
-**Token Budget:**
-- Current usage: 31.9% (63,713 / 200,000)
-- Remaining: 68.1% (136,287 tokens)
-- Step 07 is well within budget
-
-**Conclusion:** The benefits far outweigh the costs. Proceeding with Step 07 is the correct business decision.
-
----
-
-## Step 07 Scope & Objectives
-
-### Primary Objective
-**Fix trading service to enable full validation of core trading platform functionality**
-
-### Specific Goals
-1. ✅ Fix Content-Type header issue in trading service
-2. ✅ Unlock 21+ integration tests for trading operations
-3. ✅ Reach 40+ passing tests (89%+ coverage)
-4. ✅ Validate end-to-end trading flows
-5. ✅ Verify portfolio tracking (dependent feature)
-
-### Success Criteria
-- Integration tests: 40+ passing (89%+)
-- Trading operations validated through automated tests
-- Portfolio tracking verified
-- No regressions in existing functionality
-- Q/A approval
+**This is NOT a Quarkus configuration issue or missing annotation problem.** The issue is an architectural API design mismatch.
 
 ---
 
-## Instructions to Senior Engineer
+## Part 3: Comparative Analysis - Why Other Services Work
 
-### Document Created
-`docs/07_se.md` - Comprehensive instructions for Senior Engineer
+### Working Services Pattern Analysis
 
-### Key Responsibilities
-1. **Root Cause Analysis**
-   - Investigate why Content-Type headers are missing
-   - Determine which services are affected
-   - Recommend fix approach
+**User Service** (services/user-service/.../UserResource.java):
+```java
+@Path("/api/v1/users")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class UserResource {
+    @POST
+    public Response createUser(CreateUserRequest request) { ... }
 
-2. **Architectural Guidance**
-   - JAX-RS best practices for Quarkus
-   - Global vs per-endpoint fix strategy
-   - Service audit recommendations
+    @GET @Path("/{userId}")
+    public Response getUser(@PathParam("userId") UUID userId) { ... }
+}
+```
 
-3. **Developer Instructions**
-   - Create detailed `docs/07_dev.md`
-   - Provide code examples and patterns
-   - Document verification steps
+**Wallet Service** (services/wallet-service/.../WalletResource.java):
+```java
+@Path("/api/v1/wallets")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class WalletResource {
+    @GET @Path("/{userId}/balances")
+    public Response getBalances(@PathParam("userId") UUID userId) { ... }
+}
+```
 
-### Context Provided
-- Business requirement (trading is core feature)
-- Current test results (17/45 passing)
-- Q/A findings (Content-Type header issue)
-- Integration test locations
-- Known working patterns (from user-service)
-- Expected outcomes
+**Why these services work:**
+1. ✅ Tests call correct endpoint paths
+2. ✅ Endpoints exist and respond with 200 OK
+3. ✅ @Produces annotation sets Content-Type: application/json
+4. ✅ REST-Assured successfully parses response
+5. ✅ Tests pass
 
----
+**Trading Service comparison:**
+1. ❌ Tests call incorrect endpoint paths
+2. ❌ Endpoints don't exist, respond with 404
+3. ⚠️ @Produces annotation present but not applied to error responses
+4. ❌ REST-Assured fails to parse error response
+5. ❌ Tests fail
 
-## Product Owner Availability
-
-### Decision-Making Authority
-
-**Senior Engineer has full autonomy for:**
-- Technical decisions (annotation patterns, configuration)
-- Architectural choices (global vs per-endpoint fix)
-- Implementation approach
-- Testing strategy
-
-**Product Owner available for:**
-- Business requirement clarifications
-- Scope prioritization questions
-- Trade-off decisions with business impact
-- Timeline adjustments (if needed)
-
-### Communication Protocol
-
-Senior Engineer should:
-- Document technical decisions in `docs/07_discussion.md`
-- Create comprehensive `docs/07_dev.md` for Developer
-- Proceed autonomously unless business questions arise
+**Conclusion:** Trading Service has same annotations as working services, but tests are calling wrong URLs.
 
 ---
 
-## Risk Mitigation
+## Part 4: Architectural Analysis & Recommendations
 
-### Identified Risks
+### Problems with Current Trading Service Design
 
-**1. Scope Creep**
-- **Risk:** Finding additional issues during implementation
-- **Mitigation:** Focus on Content-Type headers first; document other issues for future steps
-- **Owner:** Senior Engineer (scope gatekeeper)
+#### Problem 1: Endpoint Proliferation
+- 4 separate endpoints for 2 logical operations (buy/sell)
+- Distinction between "by amount" vs "by quantity" should be a request field, not separate endpoints
+- Violates DRY principle
+- Harder to maintain and test
 
-**2. Regression**
-- **Risk:** Breaking existing functionality while fixing trading service
-- **Mitigation:** Comprehensive regression testing by Q/A
-- **Owner:** Q/A Specialist
+#### Problem 2: Path Parameter Redundancy
+```java
+@Path("/{userId}/buy/amount")
+public Response buyByAmount(@PathParam("userId") UUID userId, BuyByAmountRequest request)
+```
+- `userId` in both path AND needed in service layer
+- Creates tight coupling between URL structure and business logic
+- Less flexible for future changes (e.g., batch operations)
 
-**3. Test Data Isolation**
-- **Risk:** Manual tests interfering with automated tests (noted in Step 06)
-- **Mitigation:** Senior Engineer should address in implementation guidance
-- **Owner:** Senior Engineer + Developer
+#### Problem 3: Gateway-Service Mismatch
+- Gateway expects simple `/buy` and `/sell`
+- Service provides complex `/userId/buy/amount` style endpoints
+- This architectural disconnect prevents integration
 
-### Success Probability
+#### Problem 4: Request DTO Fragmentation
+```java
+public static class BuyByAmountRequest {
+    public String symbol;
+    public BigDecimal amount;     // Only for BY_AMOUNT
+    public Currency currency;
+    // Missing: userId (in path), orderType (in path)
+}
 
-**Confidence Level:** 🟢 **HIGH**
+public static class BuyByQuantityRequest {
+    public String symbol;
+    public BigDecimal quantity;   // Only for BY_QUANTITY
+    public Currency currency;
+    // Duplicate DTO with slightly different fields
+}
+```
 
-**Reasons:**
-1. Root cause clearly identified by Q/A
-2. Known working pattern exists (user-service)
-3. Similar fix scope (configuration/annotation)
-4. Clear verification method (integration tests)
-5. Sufficient token budget remaining
+### Recommended Architecture: Consolidated Endpoints
+
+**Adopt the simpler, more RESTful design that the Gateway already expects:**
+
+```java
+@Path("/api/v1/trades")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class TradingResource {
+
+    @POST
+    @Path("/buy")
+    public Response buy(TradeRequest request) {
+        // Single endpoint handles both BY_AMOUNT and BY_QUANTITY
+        // orderType field determines behavior
+    }
+
+    @POST
+    @Path("/sell")
+    public Response sell(TradeRequest request) {
+        // Single endpoint handles both BY_AMOUNT and BY_QUANTITY
+    }
+
+    public static class TradeRequest {
+        public UUID userId;
+        public String symbol;
+        public Currency currency;
+        public OrderType orderType;  // BY_AMOUNT or BY_QUANTITY
+        public BigDecimal amount;    // Used when orderType = BY_AMOUNT
+        public BigDecimal quantity;  // Used when orderType = BY_QUANTITY
+    }
+}
+```
+
+**Benefits:**
+1. **Matches Gateway expectations** - TradingClient already calls `/buy` and `/sell`
+2. **Reduces endpoints** - 2 instead of 4 (50% reduction)
+3. **Cleaner API** - All parameters in request body (no path param redundancy)
+4. **Single DTO per operation** - Easier to maintain and test
+5. **More extensible** - Easy to add new OrderType values without new endpoints
+6. **More RESTful** - Follows standard REST conventions
+
+### Request/Response Examples
+
+**Buy by Amount:**
+```json
+POST /api/v1/trades/buy
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "symbol": "AAPL",
+  "currency": "USD",
+  "orderType": "BY_AMOUNT",
+  "amount": 500.00
+}
+```
+
+**Buy by Quantity:**
+```json
+POST /api/v1/trades/buy
+{
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "symbol": "GOOGL",
+  "currency": "USD",
+  "orderType": "BY_QUANTITY",
+  "quantity": 10.5
+}
+```
 
 ---
 
-## Timeline & Resource Planning
+## Part 5: Scope of Changes Required
 
-### Estimated Timeline (Step 07)
+### Services Requiring Updates
 
-| Phase | Role | Duration | Deliverable |
-|-------|------|----------|-------------|
-| Analysis | Senior Engineer | 30-60 min | Root cause analysis, architectural guidance |
-| Documentation | Senior Engineer | 30 min | `docs/07_dev.md` creation |
-| Implementation | Developer | 1-2 hours | Code fixes, local verification |
-| Testing | Developer | 30 min | Integration test execution |
-| Q/A Validation | Q/A Specialist | 30-45 min | Regression testing, approval |
-| **Total** | | **2.5-3.5 hours** | Step 07 complete |
+#### 1. ✏️ Trading Service (MUST FIX - Primary Focus)
+**File:** `services/trading-service/.../resource/TradingResource.java`
 
-### Token Budget Projection
+**Changes Required:**
+- Consolidate 4 methods into 2: `buy()` and `sell()`
+- Change path from `/{userId}/buy/amount` → `/buy`
+- Create unified `TradeRequest` DTO with all fields
+- Update method logic to handle both BY_AMOUNT and BY_QUANTITY
+- Remove separate `BuyByAmountRequest`, `BuyByQuantityRequest`, etc.
 
-| Phase | Estimated Tokens | Cumulative |
-|-------|------------------|------------|
-| Current (Step 06 complete) | 63,713 | 63,713 (31.9%) |
-| Senior Engineer (Step 07) | ~15,000 | 78,713 (39.4%) |
-| Developer (Step 07) | ~25,000 | 103,713 (51.9%) |
-| Q/A (Step 07) | ~10,000 | 113,713 (56.9%) |
-| **Buffer** | | 86,287 (43.1%) |
+**Estimated Effort:** 1-2 hours
+**Risk Level:** LOW (internal refactoring, no external consumers)
+**Validation:** Integration tests will verify correctness
 
-**Conclusion:** Step 07 is well within token budget with healthy buffer remaining.
+#### 2. ✏️ Integration Tests (MUST FIX - Secondary)
+**File:** `services/integration-tests/.../BaseIntegrationSpec.groovy`
+
+**Changes Required:**
+- Update `buyShares()` helper method endpoint URL
+- Change from: `${TRADING_SERVICE_URL}/api/v1/trades/${userId}/buy/${orderType.toLowerCase()}`
+- Change to: `${TRADING_SERVICE_URL}/api/v1/trades/buy`
+- Add userId to request body
+- Add orderType to request body
+
+**Estimated Effort:** 30 minutes
+**Risk Level:** LOW (test code only)
+**Validation:** Run integration tests
+
+#### 3. ✅ API Gateway TradingClient (NO CHANGES - Already Correct!)
+**File:** `services/api-gateway/.../client/TradingClient.java`
+
+**Current state:** Already expects `/buy` and `/sell` endpoints ✅
+**Action:** No changes needed
+**This validates our architectural decision to match Gateway expectations**
+
+#### 4. ✅ Portfolio Service (NO CHANGES - Already Correct!)
+**File:** `services/portfolio-service/.../resource/PortfolioResource.java`
+
+**Current state:**
+- Has correct `@Produces(MediaType.APPLICATION_JSON)` annotation
+- Uses same response patterns as other services
+- Tests fail only because they depend on trading tests passing first
+
+**Action:** No changes needed - will automatically pass once trading tests pass
+
+---
+
+## Part 6: Technical Recommendations & Best Practices
+
+### Question 1: Scope - Should we audit all services?
+
+**Answer:** No, audit not needed for Step 07.
+
+**Rationale:**
+- User Service: 100% test pass rate ✅
+- Wallet Service: 100% test pass rate ✅
+- Currency Exchange: 100% test pass rate ✅
+- Trading Service: 0% (API mismatch, not annotation issue)
+- Portfolio Service: Depends on trading (will pass after fix)
+
+**All working services have correct annotations.** The issue is specific to Trading Service's API design, not a systematic problem.
+
+**Future recommendation:** Add explicit Content-Type header validation tests as defensive measure:
+```groovy
+def "all endpoints return application/json content-type"() {
+    expect:
+    given().get("${SERVICE_URL}/endpoint")
+        .then().contentType(ContentType.JSON)
+}
+```
+
+### Question 2: Pattern - Recommended JAX-RS annotation pattern for Quarkus 3.6.4?
+
+**Answer:** Class-level @Produces and @Consumes (current pattern is correct).
+
+**Recommended Pattern:**
+```java
+@Path("/api/v1/resource")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class ResourceClass {
+    // All methods inherit annotations
+    @POST
+    public Response create(Request req) {
+        return Response.ok(entity).build();
+    }
+}
+```
+
+**This is the standard Quarkus 3.6.4 pattern with RESTEasy Reactive.**
+
+**All services already use this pattern correctly.** No changes needed to annotation strategy.
+
+**Optional enhancement** for error responses (not required):
+```java
+return Response.status(Response.Status.BAD_REQUEST)
+    .entity(Map.of("error", message))
+    .type(MediaType.APPLICATION_JSON)  // Explicit type on errors
+    .build();
+```
+
+### Question 3: Testing - Add integration tests for Content-Type headers?
+
+**Answer:** Yes, but as future enhancement (not required for Step 07).
+
+**Current situation:** Tests implicitly validate Content-Type (they fail without it)
+
+**Recommendation for future:**
+```groovy
+def "trading endpoints return application/json content-type"() {
+    when:
+    def response = given()
+        .contentType(ContentType.JSON)
+        .body([userId: userId, symbol: "AAPL", ...])
+        .post("${TRADING_SERVICE_URL}/api/v1/trades/buy")
+
+    then:
+    response.contentType() == "application/json"
+}
+```
+
+**Priority:** LOW - Current tests catch the issue, explicit tests would give clearer errors
+
+### Question 4: API Gateway - Does it need Content-Type header updates?
+
+**Answer:** No, Gateway is already correct.
+
+**Findings:**
+- Gateway has `@Produces(MediaType.APPLICATION_JSON)` on GatewayResource ✅
+- Gateway uses `return clientResponse` pattern, preserving headers ✅
+- Gateway TradingClient already expects correct `/buy` and `/sell` endpoints ✅
+- Once Trading Service matches Gateway expectations, everything works ✅
+
+**No changes needed to API Gateway.**
+
+---
+
+## Part 7: Implementation Strategy & Approach
+
+### Chosen Approach: Refactor Trading Service to Match Gateway
+
+**Rationale:**
+1. ✅ Gateway already expects the simpler, correct API design
+2. ✅ More RESTful approach (fewer endpoints, cleaner design)
+3. ✅ Reduces code complexity (2 endpoints vs 4)
+4. ✅ Easier to maintain and extend
+5. ✅ Minimal test changes required
+6. ✅ Better long-term architecture
+
+### Alternative Approaches (Rejected)
+
+#### Option B: Update Gateway and Tests to Match Current Trading Service
+**Why rejected:**
+- Would require updating Gateway client interface
+- Would require updating all test files
+- Results in more complex API (4 endpoints instead of 2)
+- Less RESTful design (operation type in URL path)
+- More maintenance burden
+- Would codify the wrong pattern
+
+#### Option C: Keep Both APIs (Add New + Deprecate Old)
+**Why rejected:**
+- Pre-release project, no external consumers
+- Would maintain 6 endpoints (2 new + 4 old)
+- Unnecessary complexity
+- Versioning overhead for no benefit
+
+---
+
+## Part 8: Risk Assessment & Mitigation
+
+### Implementation Risks
+
+| Risk | Severity | Likelihood | Mitigation |
+|------|----------|------------|------------|
+| Breaking API changes | LOW | HIGH | No external consumers; tests validate |
+| Regression in wallet/user features | LOW | LOW | Different services; existing tests passing |
+| Missing edge cases in consolidated endpoints | MEDIUM | MEDIUM | Comprehensive test coverage validates |
+| Kafka event publishing breaks | LOW | LOW | Business logic unchanged, only endpoint paths |
+| Service-to-service communication fails | LOW | LOW | Gateway already expects new design |
+
+### Testing Strategy
+
+**Pre-Implementation Validation:**
+1. Review current Trading Service logic
+2. Identify all business logic paths
+3. Map to new consolidated endpoints
+
+**Implementation Validation:**
+1. Update Trading Service endpoints
+2. Update integration test helpers
+3. Run full integration test suite locally
+4. Verify 40+ tests passing (89%+ target)
+5. Test manually through API Gateway
+6. Verify Kafka events publish correctly
+7. Check portfolio tracking works
+
+**Post-Implementation Validation (Q/A):**
+1. Full regression test suite
+2. Manual exploratory testing
+3. Verify no regressions in user/wallet features
+4. Validate end-to-end trading flows
+5. Approve or loop back
+
+### Expected Test Results After Fix
+
+**Before Fix:**
+- ✅ Schema Isolation: 4/4 (100%)
+- ✅ User Validation: 2/2 (100%)
+- ✅ Wallet Operations: 7/7 (100%)
+- ✅ Currency Exchange: 3/3 (100%)
+- ❌ Trading Operations: 0/12-15 (0%)
+- ❌ Portfolio Tracking: 0/8-10 (0%)
+- **Total: 17/45 (37.8%)**
+
+**After Fix:**
+- ✅ Schema Isolation: 4/4 (100%)
+- ✅ User Validation: 2/2 (100%)
+- ✅ Wallet Operations: 7/7 (100%)
+- ✅ Currency Exchange: 3/3 (100%)
+- ✅ Trading Operations: 12-15/12-15 (100%)
+- ✅ Portfolio Tracking: 8-10/8-10 (100%)
+- **Total: 40-43/45 (89-96%)**
+
+---
+
+## Part 9: Technical Decisions & Rationale
+
+### Decision 1: Consolidate to 2 Endpoints
+**Choice:** `/buy` and `/sell` instead of 4 separate endpoints
+**Rationale:** More RESTful, matches Gateway, reduces complexity
+**Trade-off:** Requires conditional logic based on `orderType` field, but worth it for cleaner API
+
+### Decision 2: Move userId to Request Body
+**Choice:** Remove `userId` from path params, add to request body
+**Rationale:** Reduces path complexity, standard REST pattern for bulk operations
+**Trade-off:** Slight request body size increase, but more flexible architecture
+
+### Decision 3: Single TradeRequest DTO
+**Choice:** One DTO with `amount` and `quantity` fields (use based on `orderType`)
+**Rationale:** DRY principle, easier to extend with new order types
+**Trade-off:** DTO has optional fields, but better than maintaining multiple DTOs
+
+### Decision 4: Match Gateway Expectations
+**Choice:** Refactor Trading Service to match Gateway (not vice versa)
+**Rationale:** Gateway has correct, simpler design already defined
+**Trade-off:** Requires Trading Service changes, but correct long-term decision
+
+### Decision 5: No Multi-Service Audit
+**Choice:** Fix only Trading Service for Step 07
+**Rationale:** Other services have passing tests, no evidence of issues
+**Trade-off:** Potential unknown issues, but mitigated by comprehensive test coverage
+
+---
+
+## Part 10: Implementation Plan - High Level
+
+### Phase 1: Trading Service Refactoring (Developer)
+1. Update TradingResource.java endpoint paths
+2. Consolidate 4 methods into 2 (buy/sell)
+3. Create unified TradeRequest DTO
+4. Update service layer calls (pass orderType)
+5. Verify compilation
+6. Verify Kafka event publishing still works
+
+**Estimated Time:** 1-2 hours
+
+### Phase 2: Integration Test Updates (Developer)
+1. Update BaseIntegrationSpec.groovy helper methods
+2. Fix endpoint URLs in buyShares() and sellShares()
+3. Update request body construction
+4. Verify test compilation
+
+**Estimated Time:** 30 minutes
+
+### Phase 3: Local Validation (Developer)
+1. Start Docker Compose environment
+2. Run integration test suite
+3. Verify 40+ tests passing
+4. Manual testing through API Gateway
+5. Check Kafka event flows
+
+**Estimated Time:** 30-45 minutes
+
+### Phase 4: Q/A Validation (Q/A Specialist)
+1. Run full integration test suite
+2. Validate 89%+ coverage achieved
+3. Regression test all features
+4. Exploratory testing
+5. Approve or loop back
+
+**Estimated Time:** 30-45 minutes
+
+**Total Estimated Time:** 2.5-3.5 hours
+
+---
+
+## Success Criteria
+
+**Step 07 will be considered complete when:**
+
+1. ✅ Trading Service endpoints match Gateway expectations (`/buy`, `/sell`)
+2. ✅ Integration tests pass: 40+ tests (89%+ coverage)
+3. ✅ All trading operations validated (buy by amount, buy by quantity, sell operations)
+4. ✅ Portfolio tracking tests passing (dependency resolved)
+5. ✅ No regressions in existing features (user, wallet, exchange still at 100%)
+6. ✅ Kafka events still publishing correctly
+7. ✅ Manual testing through API Gateway successful
+8. ✅ Q/A approval obtained
 
 ---
 
 ## Next Steps
 
-### Immediate (Now)
-1. ✅ Product Owner decision documented (this file)
-2. ✅ Senior Engineer instructions created (`docs/07_se.md`)
-3. ✅ Implementation status updated
-4. 🔄 Senior Engineer begins analysis
-
-### Step 07 Workflow
-```
-PO (Complete) → SE (In Progress) → DEV → Q_A
-```
-
-### After Step 07
-- If Q/A approves: Project ready for delivery decision
-- If Q/A finds issues: Loop back to appropriate role (likely DEV)
+1. ✅ **[COMPLETE]** Senior Engineer analysis and recommendations (this document)
+2. **[NEXT]** Senior Engineer creates detailed developer implementation guide (`docs/07_dev.md`)
+3. Developer reads implementation guide and executes changes
+4. Developer runs integration tests locally
+5. Developer creates Q/A test instructions (`docs/07_q_a.md`)
+6. Q/A runs comprehensive validation
+7. Q/A approves Step 07 or loops back if issues found
 
 ---
 
-## Acceptance Criteria for Project Completion
+## Senior Engineer Sign-Off
 
-### When Can We Ship?
-
-**Minimum Requirements:**
-1. ✅ All core features validated (user, wallet, trading, portfolio)
-2. ✅ Integration test coverage: 89%+ (40+ tests passing)
-3. ✅ System stability verified (14 containers running without issues)
-4. ✅ No critical bugs or regressions
-5. ✅ Q/A approval
-
-**Current Status vs Requirements:**
-- User management: ✅ Validated
-- Wallet operations: ✅ Validated
-- Trading operations: ❌ Not validated (Step 07 objective)
-- Portfolio tracking: ❌ Not validated (depends on trading)
-- Test coverage: ❌ 37.8% (need 89%+)
-- System stability: ✅ Verified
-- Critical bugs: ✅ None
-
-**After Step 07, we expect:**
-- Trading operations: ✅ Validated
-- Portfolio tracking: ✅ Validated
-- Test coverage: ✅ 89%+ (40+ tests)
-- **Result:** All requirements met → Ready for delivery decision
-
----
-
-## Product Owner Sign-Off
-
-**Decision:** Proceed with Step 07 - Trading Service Improvements
-
-**Rationale:** Cannot ship trading platform without validated core trading functionality. Clear path forward with acceptable cost and timeline.
-
-**Next Review Point:** After Step 07 Q/A validation
-
-**Status:** Instructions delivered to Senior Engineer in `docs/07_se.md`
+**Analysis Status:** ✅ Complete
+**Root Cause:** API contract mismatch between Trading Service, Gateway, and Tests
+**Solution:** Refactor Trading Service to match Gateway expectations
+**Confidence Level:** 🟢 HIGH - Clear path forward, low risk, well-defined scope
+**Ready for Development:** ✅ YES - Detailed implementation guide to follow
 
 ---
 
 **Document created:** 2026-01-14
-**Product Owner:** Claude (Sonnet 4.5) in Product Owner role
-**Next Phase:** Senior Engineer analysis and developer instruction creation
+**Senior Engineer:** Claude Sonnet 4.5
+**Next deliverable:** `docs/07_dev.md` (Developer Implementation Guide)
