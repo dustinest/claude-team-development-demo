@@ -21,82 +21,94 @@ public class TradingResource {
     TradingService tradingService;
 
     @POST
-    @Path("/{userId}/buy/amount")
-    @Operation(summary = "Execute buy order by dollar amount")
-    public Response buyByAmount(@PathParam("userId") UUID userId, BuyByAmountRequest request) {
+    @Path("/buy")
+    @Operation(summary = "Execute buy order")
+    public Response buy(TradeRequest request) {
         try {
-            var trade = tradingService.executeBuy(userId, request.symbol,
-                request.currency, OrderType.BY_AMOUNT, request.amount);
+            // Validate request
+            validateTradeRequest(request);
+
+            // Execute buy based on order type
+            var trade = tradingService.executeBuy(
+                request.userId,
+                request.symbol,
+                request.currency,
+                request.orderType,
+                request.orderType == OrderType.BY_AMOUNT ? request.amount : request.quantity
+            );
+
             return Response.ok(trade).build();
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(Map.of("error", e.getMessage())).build();
+                .entity(Map.of("error", e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(Map.of("error", "Failed to execute buy order: " + e.getMessage()))
+                .build();
         }
     }
 
     @POST
-    @Path("/{userId}/buy/quantity")
-    @Operation(summary = "Execute buy order by share quantity")
-    public Response buyByQuantity(@PathParam("userId") UUID userId, BuyByQuantityRequest request) {
+    @Path("/sell")
+    @Operation(summary = "Execute sell order")
+    public Response sell(TradeRequest request) {
         try {
-            var trade = tradingService.executeBuy(userId, request.symbol,
-                request.currency, OrderType.BY_QUANTITY, request.quantity);
+            // Validate request
+            validateTradeRequest(request);
+
+            // Execute sell based on order type
+            var trade = tradingService.executeSell(
+                request.userId,
+                request.symbol,
+                request.currency,
+                request.orderType,
+                request.orderType == OrderType.BY_AMOUNT ? request.amount : request.quantity
+            );
+
             return Response.ok(trade).build();
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
-                .entity(Map.of("error", e.getMessage())).build();
+                .entity(Map.of("error", e.getMessage()))
+                .build();
+        } catch (IllegalStateException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity(Map.of("error", e.getMessage()))
+                .build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity(Map.of("error", "Failed to execute sell order: " + e.getMessage()))
+                .build();
         }
     }
 
-    @POST
-    @Path("/{userId}/sell/amount")
-    @Operation(summary = "Execute sell order by dollar amount")
-    public Response sellByAmount(@PathParam("userId") UUID userId, SellByAmountRequest request) {
-        try {
-            var trade = tradingService.executeSell(userId, request.symbol,
-                request.currency, OrderType.BY_AMOUNT, request.amount);
-            return Response.ok(trade).build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(Map.of("error", e.getMessage())).build();
+    private void validateTradeRequest(TradeRequest request) {
+        if (request.userId == null) {
+            throw new IllegalArgumentException("userId is required");
+        }
+        if (request.symbol == null || request.symbol.isBlank()) {
+            throw new IllegalArgumentException("symbol is required");
+        }
+        if (request.currency == null) {
+            throw new IllegalArgumentException("currency is required");
+        }
+        if (request.orderType == null) {
+            throw new IllegalArgumentException("orderType is required");
+        }
+        if (request.orderType == OrderType.BY_AMOUNT && (request.amount == null || request.amount.compareTo(BigDecimal.ZERO) <= 0)) {
+            throw new IllegalArgumentException("amount must be positive when orderType is BY_AMOUNT");
+        }
+        if (request.orderType == OrderType.BY_QUANTITY && (request.quantity == null || request.quantity.compareTo(BigDecimal.ZERO) <= 0)) {
+            throw new IllegalArgumentException("quantity must be positive when orderType is BY_QUANTITY");
         }
     }
 
-    @POST
-    @Path("/{userId}/sell/quantity")
-    @Operation(summary = "Execute sell order by share quantity")
-    public Response sellByQuantity(@PathParam("userId") UUID userId, SellByQuantityRequest request) {
-        try {
-            var trade = tradingService.executeSell(userId, request.symbol,
-                request.currency, OrderType.BY_QUANTITY, request.quantity);
-            return Response.ok(trade).build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                .entity(Map.of("error", e.getMessage())).build();
-        }
-    }
-
-    public static class BuyByAmountRequest {
+    public static class TradeRequest {
+        public UUID userId;
         public String symbol;
-        public BigDecimal amount;
         public Currency currency;
-    }
-
-    public static class BuyByQuantityRequest {
-        public String symbol;
-        public BigDecimal quantity;
-        public Currency currency;
-    }
-
-    public static class SellByAmountRequest {
-        public String symbol;
-        public BigDecimal amount;
-        public Currency currency;
-    }
-
-    public static class SellByQuantityRequest {
-        public String symbol;
-        public BigDecimal quantity;
-        public Currency currency;
+        public OrderType orderType;
+        public BigDecimal amount;    // Used when orderType = BY_AMOUNT
+        public BigDecimal quantity;  // Used when orderType = BY_QUANTITY
     }
 }

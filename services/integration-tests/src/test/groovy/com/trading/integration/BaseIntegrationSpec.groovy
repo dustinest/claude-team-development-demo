@@ -67,16 +67,17 @@ abstract class BaseIntegrationSpec extends Specification {
     }
 
     // Helper: Create test user
-    Map createTestUser(String email = null, String username = null) {
+    Map createTestUser(String email = null, String username = null, String phoneNumber = null) {
         def testEmail = email ?: "test-${UUID.randomUUID().toString()}@example.com".toString()
         def testUsername = username ?: "user${UUID.randomUUID().toString().take(8)}".toString()
+        def testPhone = phoneNumber ?: "+1${UUID.randomUUID().toString().replaceAll('-', '').take(14)}".toString()
 
         def response = given()
             .contentType(ContentType.JSON)
             .body([
                 email: testEmail,
                 username: testUsername,
-                phoneNumber: "+1234567890"
+                phoneNumber: testPhone
             ])
             .post("${API_GATEWAY_URL}/api/v1/signup")
             .then()
@@ -122,14 +123,49 @@ abstract class BaseIntegrationSpec extends Specification {
 
     // Helper: Buy shares
     Map buyShares(String userId, String symbol, BigDecimal amount, String orderType = "BY_AMOUNT") {
-        def body = orderType == "BY_AMOUNT" ?
-            [symbol: symbol, amount: amount] :
-            [symbol: symbol, quantity: amount]
+        def body = [
+            userId: userId,
+            symbol: symbol,
+            currency: "USD",
+            orderType: orderType
+        ]
+
+        if (orderType == "BY_AMOUNT") {
+            body.amount = amount
+        } else {
+            body.quantity = amount
+        }
 
         def response = given()
             .contentType(ContentType.JSON)
             .body(body)
-            .post("${TRADING_SERVICE_URL}/api/v1/trades/${userId}/buy/${orderType.toLowerCase()}")
+            .post("${TRADING_SERVICE_URL}/api/v1/trades/buy")
+            .then()
+            .extract()
+            .response()
+
+        return response.body().as(Map)
+    }
+
+    // Helper: Sell shares
+    Map sellShares(String userId, String symbol, BigDecimal amount, String orderType = "BY_AMOUNT") {
+        def body = [
+            userId: userId,
+            symbol: symbol,
+            currency: "USD",
+            orderType: orderType
+        ]
+
+        if (orderType == "BY_AMOUNT") {
+            body.amount = amount
+        } else {
+            body.quantity = amount
+        }
+
+        def response = given()
+            .contentType(ContentType.JSON)
+            .body(body)
+            .post("${TRADING_SERVICE_URL}/api/v1/trades/sell")
             .then()
             .extract()
             .response()
