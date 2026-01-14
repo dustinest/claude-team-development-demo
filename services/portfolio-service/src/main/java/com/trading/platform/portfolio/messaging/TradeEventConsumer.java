@@ -3,6 +3,7 @@ package com.trading.platform.portfolio.messaging;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trading.platform.events.TradeCompletedEvent;
 import com.trading.platform.portfolio.service.PortfolioService;
+import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -20,6 +21,7 @@ public class TradeEventConsumer {
     ObjectMapper objectMapper;
 
     @Incoming("trading-events-in")
+    @Blocking
     public void consumeTradeCompletedEvent(String message) {
         try {
             TradeCompletedEvent event = objectMapper.readValue(message, TradeCompletedEvent.class);

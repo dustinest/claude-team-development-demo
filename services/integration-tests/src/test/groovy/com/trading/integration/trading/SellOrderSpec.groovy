@@ -20,19 +20,14 @@ class SellOrderSpec extends BaseIntegrationSpec {
         def initialQuantity = initialHoldings[0].quantity as BigDecimal
 
         when: "selling 5 shares of AAPL"
-        def response = given()
-            .contentType("application/json")
-            .body([symbol: "AAPL", quantity: 5.00])
-            .post("${TRADING_SERVICE_URL}/api/v1/trades/${user.userId}/sell/by_quantity")
-            .then()
-            .extract()
-            .response()
+        def trade = sellShares(user.userId, "AAPL", 5.00, "BY_QUANTITY")
 
         and: "we wait for portfolio update"
         Thread.sleep(1000)
 
         then: "trade is executed"
-        response.statusCode() == 200
+        trade != null
+        trade.symbol == "AAPL"
 
         and: "holdings are reduced"
         def newHoldings = queryDatabase(
@@ -49,19 +44,14 @@ class SellOrderSpec extends BaseIntegrationSpec {
         Thread.sleep(1000)
 
         when: "selling all 10 shares"
-        def response = given()
-            .contentType("application/json")
-            .body([symbol: "MSFT", quantity: 10.00])
-            .post("${TRADING_SERVICE_URL}/api/v1/trades/${user.userId}/sell/by_quantity")
-            .then()
-            .extract()
-            .response()
+        def trade = sellShares(user.userId, "MSFT", 10.00, "BY_QUANTITY")
 
         and: "we wait for portfolio update"
         Thread.sleep(1000)
 
         then: "trade is executed"
-        response.statusCode() == 200
+        trade != null
+        trade.symbol == "MSFT"
 
         and: "holding is removed or set to zero"
         def holdings = queryDatabase(
@@ -80,8 +70,14 @@ class SellOrderSpec extends BaseIntegrationSpec {
         when: "attempting to sell 100 shares"
         def response = given()
             .contentType("application/json")
-            .body([symbol: "AAPL", quantity: 100.00])
-            .post("${TRADING_SERVICE_URL}/api/v1/trades/${user.userId}/sell/by_quantity")
+            .body([
+                userId: user.userId,
+                symbol: "AAPL",
+                currency: "USD",
+                orderType: "BY_QUANTITY",
+                quantity: 100.00
+            ])
+            .post("${TRADING_SERVICE_URL}/api/v1/trades/sell")
             .then()
             .extract()
             .response()
@@ -100,14 +96,7 @@ class SellOrderSpec extends BaseIntegrationSpec {
         def balanceBeforeSell = getWalletBalance(user.userId, "USD")
 
         when: "selling shares"
-        def response = given()
-            .contentType("application/json")
-            .body([symbol: "AAPL", quantity: 1.00])
-            .post("${TRADING_SERVICE_URL}/api/v1/trades/${user.userId}/sell/by_quantity")
-            .then()
-            .statusCode(200)
-            .extract()
-            .response()
+        def trade = sellShares(user.userId, "AAPL", 1.00, "BY_QUANTITY")
 
         and: "we wait for wallet update"
         Thread.sleep(1000)

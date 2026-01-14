@@ -17,7 +17,7 @@ class BuyOrderSpec extends BaseIntegrationSpec {
 
         then: "trade is executed"
         trade.symbol == "AAPL"
-        trade.totalCost > 0
+        trade.totalAmount > 0
 
         and: "portfolio holding is created"
         def holdings = queryDatabase(

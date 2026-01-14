@@ -36,14 +36,7 @@ class FractionalSharesSpec extends BaseIntegrationSpec {
         def initialQuantity = initialHoldings[0].quantity as BigDecimal
 
         when: "selling 0.5 shares (fractional)"
-        def response = given()
-            .contentType("application/json")
-            .body([symbol: "GOOGL", quantity: 0.50])
-            .post("${TRADING_SERVICE_URL}/api/v1/trades/${user.userId}/sell/by_quantity")
-            .then()
-            .statusCode(200)
-            .extract()
-            .response()
+        def trade = sellShares(user.userId, "GOOGL", 0.50, "BY_QUANTITY")
 
         and: "we wait for portfolio update"
         Thread.sleep(1000)
