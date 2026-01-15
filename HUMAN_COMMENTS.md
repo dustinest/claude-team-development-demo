@@ -134,6 +134,12 @@ For me, this is a clear note to self. In future experiments like this, asking to
 
 ## Current State and Handover
 
+Before continuing, a small but important clarification.
+
+The frontend part of this project is incomplete and may be broken. It was not the focus of this experiment and should be treated accordingly.
+
+More generally, this repository should be viewed as a learning and experimentation artifact, not as production-ready software.
+
 With the last commit, the Product Owner reviewed the progress and formally handed the work over to the Senior Engineer.
 
 To continue the flow, the following prompt is required:
