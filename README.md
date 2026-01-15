@@ -1,6 +1,14 @@
 # Fractional Stock Trading Platform
 ### A Multi-Role Claude CLI Workflow Demonstration
 
+> **Hi! Human here.**
+> 
+> **Disclaimer:** All code in this repository was written by **Claude Code**. I only provide high-level notes and review feedback.
+> 
+> **Goal:** Learn and experiment by implementing a slightly more complex, real-world microservices setup.
+> 
+> **My notes:** See [HUMAN_COMMENTS.md](HUMAN_COMMENTS.md) (includes the initial remarks and additional observations).
+
 > **Purpose:** This project demonstrates a structured, multi-role workflow approach for using Claude CLI to autonomously design, implement, and test a production-ready Java microservices application.
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]()
@@ -18,7 +26,7 @@
 - **[Replicating This Workflow](#replicating-this-workflow)** - Use this approach for your own projects
 - **[Architecture & Technical Decisions](#architecture--technical-decisions)** - Technical design and patterns
 - **[Test Report](./TEST_REPORT.md)** - Detailed Q/A test results and bug fixes
-- **[Complete Documentation](./docs/)** - All workflow documents (setup, discussion, dev guide, Q/A)
+- **[Complete Documentation](docs)** - All workflow documents (setup, discussion, dev guide, Q/A)
 - **[Key Learnings](#key-learnings--insights)** - What worked, what didn't, best practices
 
 ---
@@ -114,17 +122,17 @@ This explicit role declaration ensures:
 
 | Phase | Duration | Key Outcomes | Documentation |
 |-------|----------|--------------|---------------|
-| **Setup** | 20 min | Workflow definition, role responsibilities | `docs/01_setup.md` |
-| **Step 01: Product Owner** | 48 min | Requirements, vision, success criteria | `docs/01_discussion.md`, `docs/01_se.md` |
-| **Step 01: Senior Engineer** | 6 min | Architecture, tech stack, design patterns | `docs/01_dev.md` |
-| **Step 01: Developer** | 39 min | 6/10 services, then token pause | Code + `IMPLEMENTATION_STATUS.md` |
+| **Setup** | 20 min | Workflow definition, role responsibilities | [docs/01_setup.md](docs/01_setup.md) |
+| **Step 01: Product Owner** | 48 min | Requirements, vision, success criteria | [docs/01_discussion.md](docs/01_discussion.md), [docs/01_se.md](docs/01_se.md) |
+| **Step 01: Senior Engineer** | 6 min | Architecture, tech stack, design patterns | [docs/01_dev.md](docs/01_dev.md) |
+| **Step 01: Developer** | 39 min | 6/10 services, then token pause | Code + [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) |
 | **Step 01: Developer (cont.)** | - | 4/10 remaining services completed | Complete backend |
-| **Step 01: Q/A Specialist** | 21 min | Testing, **2 critical bugs found** | `docs/01_q_a.md`, `TEST_REPORT.md` |
-| **Step 02: Developer** | ~90 min | Bug fix attempt, partial success | `docs/02_dev.md`, `docs/02_discussion.md` |
-| **Step 02: Q/A Testing** | 15 min | 1 bug fixed, 1 escalated to SE | `TEST_REPORT.md` (updated) |
-| **Step 03: Senior Engineer** | ~30 min | Architectural review, schema isolation decision | `docs/03_se.md`, `docs/03_discussion.md` |
-| **Step 03: Developer** | ~90 min | Schema isolation implementation | `docs/03_dev.md`, `docs/03_discussion.md` |
-| **Step 03: Q/A Specialist** | 15 min | **10/10 tests passed**, system verified | `docs/03_q_a.md`, `TEST_REPORT.md` |
+| **Step 01: Q/A Specialist** | 21 min | Testing, **2 critical bugs found** | [docs/01_q_a.md](docs/01_q_a.md), [TEST_REPORT.md](TEST_REPORT.md) |
+| **Step 02: Developer** | ~90 min | Bug fix attempt, partial success | [docs/02_dev.md](docs/02_dev.md), [docs/02_discussion.md](docs/02_discussion.md) |
+| **Step 02: Q/A Testing** | 15 min | 1 bug fixed, 1 escalated to SE | [TEST_REPORT.md](TEST_REPORT.md) (updated) |
+| **Step 03: Senior Engineer** | ~30 min | Architectural review, schema isolation decision | [docs/03_se.md](docs/03_se.md), [docs/03_discussion.md](docs/03_discussion.md) |
+| **Step 03: Developer** | ~90 min | Schema isolation implementation | [docs/03_dev.md](docs/03_dev.md), [docs/03_discussion.md](docs/03_discussion.md) |
+| **Step 03: Q/A Specialist** | 15 min | **10/10 tests passed**, system verified | [docs/03_q_a.md](docs/03_q_a.md), [TEST_REPORT.md](TEST_REPORT.md) |
 
 **Total Active Time:** ~6 hours (across 3 complete iterations)
 **Total Q/A Testing Time:** ~45 minutes
@@ -395,17 +403,17 @@ docs/
 ├── 01_setup.md          # Workflow definition, role responsibilities
 │
 ├── 01_discussion.md     # Step 01: Complete PO ↔ Operator Q/A session
-├── 01_se.md            # Step 01: Instructions FROM PO TO Senior Engineer
-├── 01_dev.md           # Step 01: Instructions FROM SE TO Developer (40+ pages)
-├── 01_q_a.md           # Step 01: Testing instructions FROM DEV TO Q/A
+├── 01_se.md             # Step 01: Instructions FROM PO TO Senior Engineer
+├── 01_dev.md            # Step 01: Instructions FROM SE TO Developer (40+ pages)
+├── 01_q_a.md            # Step 01: Testing instructions FROM DEV TO Q/A
 │
-├── 02_dev.md           # Step 02: Bug fix instructions FROM Q/A TO Developer
+├── 02_dev.md            # Step 02: Bug fix instructions FROM Q/A TO Developer
 ├── 02_discussion.md     # Step 02: Developer root cause analysis and fixes
 │
 ├── 03_discussion.md     # Step 03: Complete architectural review cycle
-├── 03_se.md            # Step 03: SE architectural decision (schema isolation)
-├── 03_dev.md           # Step 03: Developer implementation instructions
-└── 03_q_a.md           # Step 03: Q/A regression testing instructions (10 tests)
+├── 03_se.md             # Step 03: SE architectural decision (schema isolation)
+├── 03_dev.md            # Step 03: Developer implementation instructions
+└── 03_q_a.md            # Step 03: Q/A regression testing instructions (10 tests)
 ```
 
 **Step Progression:**
@@ -429,7 +437,7 @@ Each step represents a complete PO → SE → DEV → Q/A cycle (or partial cycl
 
 **Significance:** Demonstrates responsible workflow management under resource constraints. The developer didn't just stop—they documented exactly where they were and what came next.
 
-#### PROJECT_COMPLETION.md
+#### [PROJECT_COMPLETION.md](PROJECT_COMPLETION.md)
 
 **Created by:** Developer (after full implementation)
 **Purpose:** Final status report
@@ -497,7 +505,7 @@ Each service also has **live Swagger UI** at `http://localhost:{port}/swagger-ui
 
 **Challenge:** Token limit reached at 60% implementation.
 
-**Solution:** Developer proactively created `IMPLEMENTATION_STATUS.md` with:
+**Solution:** Developer proactively created [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) with:
 - Clear completion status
 - Detailed next steps
 - Implementation patterns for remaining services
@@ -798,7 +806,7 @@ docker-compose up -d
 
 ### Manual Testing Guide
 
-See `docs/01_q_a.md` for comprehensive test cases including:
+See [docs/01_q_a.md](docs/01_q_a.md) for comprehensive test cases including:
 - TC-001 through TC-015 (all test scenarios)
 - Expected results for each test
 - Sample test data
@@ -867,7 +875,7 @@ You just need to:
 ### 4. Handle Resource Constraints Proactively
 
 If tokens run low:
-- Current role documents their state in `IMPLEMENTATION_STATUS.md`
+- Current role documents their state in [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)
 - Lists completed work and remaining tasks
 - Provides patterns/examples for continuation
 - After replenishment, work continues from documented state
@@ -1116,7 +1124,7 @@ find . -name "build.gradle.kts" | wc -l
 This project serves as a reference implementation. If you'd like to:
 
 1. **Improve the workflow:** Open an issue describing your enhancement
-2. **Add the frontend:** Follow `PROJECT_COMPLETION.md` guidance
+2. **Add the frontend:** Follow [PROJECT_COMPLETION.md](PROJECT_COMPLETION.md) guidance
 3. **Complete the tests:** Use patterns from `docs/01_dev.md`
 4. **Production hardening:** Add monitoring, security, k8s configs
 
@@ -1159,11 +1167,11 @@ This project is provided as-is for educational and reference purposes.
 ## Contact & Questions
 
 For questions about:
-- **The workflow:** Review `docs/01_setup.md`
-- **The architecture:** Review `docs/01_dev.md` (Senior Engineer section)
-- **Implementation details:** Review `docs/01_dev.md` (Developer guide)
-- **Testing approach:** Review `docs/01_q_a.md`
-- **Current status:** Review `PROJECT_COMPLETION.md`
+- **The workflow:** Review [docs/01_setup.md](docs/01_setup.md)
+- **The architecture:** Review [docs/01_dev.md](docs/01_dev.md) (Senior Engineer section)
+- **Implementation details:** Review [docs/01_dev.md](docs/01_dev.md) (Developer guide)
+- **Testing approach:** Review [docs/01_q_a.md](docs/01_q_a.md)
+- **Current status:** Review [PROJECT_COMPLETION.md](PROJECT_COMPLETION.md)
 
 ---
 
